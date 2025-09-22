@@ -62,6 +62,15 @@ Message: {message}"""
         return f"Error formatting alert: {str(e)}\nRaw data: {str(alert_data)}"
 
 
+def run_async(coro):
+    """Helper function to run async code in sync context"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(coro)
+    finally:
+        loop.close()
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     try:
@@ -72,8 +81,8 @@ def webhook():
         message = format_alert_message(alert_data)
 
         try:
-            # Send message to Matrix room asynchronously
-            asyncio.run(send_matrix_message(message))
+            # Send message to Matrix room using our async helper
+            run_async(send_matrix_message(message))
         except Exception as matrix_error:
             return jsonify({"error": f"Matrix error: {str(matrix_error)}"}), 500
 
@@ -96,6 +105,14 @@ if __name__ == "__main__":
         print(
             f"Error: Missing required environment variables: {', '.join(missing_vars)}"
         )
+        exit(1)
+    
+    # Initialize Matrix client before starting the app
+    try:
+        run_async(init_matrix_client())
+        print("✅ Successfully connected to Matrix")
+    except Exception as e:
+        print(f"❌ Failed to connect to Matrix: {str(e)}")
         exit(1)
 
     # Run Flask app
