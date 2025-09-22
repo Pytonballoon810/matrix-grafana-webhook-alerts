@@ -26,6 +26,7 @@ async def process_message_queue():
     global matrix_client
     while True:
         try:
+            # Initialize Matrix client if needed
             if not matrix_client:
                 matrix_client = AsyncClient(MATRIX_HOMESERVER, MATRIX_USER)
                 response = await matrix_client.login(MATRIX_PASSWORD)
@@ -34,20 +35,27 @@ async def process_message_queue():
                 print("✅ Successfully connected to Matrix")
 
             # Get message from queue (if any)
+            message = None
             try:
                 message = message_queue.get_nowait()
+            except Exception:
+                # Just wait if no message
+                await asyncio.sleep(1)
+                continue
+
+            if message:
                 await matrix_client.room_send(
                     room_id=MATRIX_ROOM_ID,
                     message_type="m.room.message",
                     content={"msgtype": "m.text", "body": message},
                 )
                 print(f"✅ Sent message to Matrix room")
-            except Queue.empty:
-                await asyncio.sleep(1)  # Wait a bit before checking queue again
                 
         except Exception as e:
             print(f"❌ Error in message processing: {str(e)}")
-            matrix_client = None  # Reset client on error
+            if matrix_client:
+                await matrix_client.close()
+            matrix_client = None
             await asyncio.sleep(5)  # Wait before retrying
 
 def run_async_loop():
@@ -108,6 +116,12 @@ def webhook():
         return jsonify({"error": f"Webhook error: {str(e)}"}), 500
 
 
+def cleanup():
+    """Cleanup function to close Matrix client properly"""
+    global matrix_client
+    if matrix_client:
+        asyncio.run(matrix_client.close())
+
 if __name__ == "__main__":
     # Verify required environment variables
     required_vars = [
@@ -123,6 +137,10 @@ if __name__ == "__main__":
             f"Error: Missing required environment variables: {', '.join(missing_vars)}"
         )
         exit(1)
+    
+    # Register cleanup function
+    import atexit
+    atexit.register(cleanup)
     
     # Start the async processing thread
     thread = threading.Thread(target=run_async_loop, daemon=True)
