@@ -105,14 +105,23 @@ def webhook():
     try:
         alert_data = request.get_json()
         if not alert_data:
+            print("❌ Received empty webhook payload")
             return jsonify({"error": "No data received"}), 400
+
+        # Log the received alert
+        status = alert_data.get('status', 'unknown')
+        rule_id = alert_data.get('ruleId', 'unknown')
+        msg = alert_data.get('message', 'No message')
+        print(f"📥 Received alert - Status: {status} | Rule: {rule_id} | Message: {msg}")
 
         message = format_alert_message(alert_data)
         
         # Add message to queue for processing
         message_queue.put(message)
+        print("✉️  Added message to processing queue")
         return jsonify({"status": "success"}), 200
     except Exception as e:
+        print(f"❌ Webhook error: {str(e)}")
         return jsonify({"error": f"Webhook error: {str(e)}"}), 500
 
 
