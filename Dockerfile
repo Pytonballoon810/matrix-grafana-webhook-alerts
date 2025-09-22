@@ -7,10 +7,10 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy source code
-COPY src/ .
+COPY src/ src/
 
 # Expose the webhook port
 EXPOSE 5000
 
 # Run the application
-CMD ["python", "main.py"]
+CMD ["python", "src/main.py"]
