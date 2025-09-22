@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   grafana-matrix-webhook:
-    image: pytonballoon810/matrix-grafana-webhook:latest
+    image: pytonballoon810/matrix-grafana-webhook-alerts:latest
     container_name: grafana-matrix-webhook
     restart: unless-stopped
     ports:

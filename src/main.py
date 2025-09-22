@@ -19,8 +19,12 @@ async def init_matrix_client():
     global matrix_client
     matrix_client = AsyncClient(MATRIX_HOMESERVER, MATRIX_USER)
     response = await matrix_client.login(MATRIX_PASSWORD)
-    if not response.is_ok():
-        raise Exception("Failed to login to Matrix")
+    
+    # Check if login was successful
+    if hasattr(response, 'access_token'):
+        return True
+    else:
+        raise Exception(f"Failed to login to Matrix: {response}")
 
 
 async def send_matrix_message(message):
@@ -67,12 +71,15 @@ def webhook():
 
         message = format_alert_message(alert_data)
 
-        # Send message to Matrix room asynchronously
-        asyncio.run(send_matrix_message(message))
+        try:
+            # Send message to Matrix room asynchronously
+            asyncio.run(send_matrix_message(message))
+        except Exception as matrix_error:
+            return jsonify({"error": f"Matrix error: {str(matrix_error)}"}), 500
 
         return jsonify({"status": "success"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Webhook error: {str(e)}"}), 500
 
 
 if __name__ == "__main__":
