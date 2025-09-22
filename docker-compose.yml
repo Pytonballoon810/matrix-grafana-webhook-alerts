@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  grafana-matrix-webhook:
+    image: pytonballoon810/matrix-grafana-webhook:latest
+    container_name: grafana-matrix-webhook
+    restart: unless-stopped
+    ports:
+      # The webhook port that Grafana will send alerts to
+      - "5000:5000"
+    environment:
+      # Matrix homeserver URL (e.g., https://matrix.org)
+      - MATRIX_HOMESERVER="https://matrix.org"
+      # Matrix user ID (e.g., @user:matrix.org)
+      - MATRIX_USER="usr"
+      # Matrix user password
+      - MATRIX_PASSWORD="pwd"
+      # Matrix room ID to send messages to (e.g., !roomid:matrix.org)
+      - MATRIX_ROOM_ID="!roomid:matrix.org"
+    networks:
+      - grafana-matrix-net
+
+networks:
+  grafana-matrix-net:
+    driver: bridge
